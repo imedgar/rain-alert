@@ -1,0 +1,41 @@
+name: rain-alert CI & Scheduled Cron
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: "0 5-20 * * *" # Runs from 05:00 to 20:00 at 00
+  workflow_dispatch: # Allows manual execution
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create .env file from secrets
+        run: |
+          cat <<EOF > .env
+          DB_URL=${{ secrets.TURSO_URL }}
+          DB_TOKEN=${{ secrets.TURSO_TOKEN }}
+          WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}
+          PUSH_NOTIFICATION_TOPIC=${{ secrets.WEATHER_TOPIC }}
+          LOCATION=${{ secrets.WEATHER_LOCATION }}
+          TIMEZONE=${{ secrets.TIMEZONE }}
+          EOF
+
+      - name: Set Docker image tag
+        run: echo "IMAGE_TAG=rain-alert-$(date +%s)" >> $GITHUB_ENV
+
+      - name: Build the Docker image
+        run: |
+          docker build --build-arg ENV=development . --file Dockerfile --tag $IMAGE_TAG
+          docker tag $IMAGE_TAG rain-alert:latest
+
+      - name: Run Docker container and show logs
+        run: |
+          docker run --env-file .env $IMAGE_TAG
