@@ -46,9 +46,8 @@ type Config struct {
 }
 
 type WeatherAPI struct {
-	Db         *sql.DB
-	Config     Config
-	Thresholds map[string]int
+	Db     *sql.DB
+	Config Config
 }
 
 func NewWeatherAPI(config Config, db *sql.DB) *WeatherAPI {
@@ -56,11 +55,13 @@ func NewWeatherAPI(config Config, db *sql.DB) *WeatherAPI {
 }
 
 const (
-	apiURL          = "http://api.weatherapi.com/v1/forecast.json"
-	checkAheadHours = 1
-	userAgent       = "rain-alert/1.0"
-	ntfyBaseURL     = "https://ntfy.sh"
-	dateLayout      = "2006-01-02 15:04"
+	apiURL              = "http://api.weatherapi.com/v1/forecast.json"
+	rainBeforeThreshold = 70
+	drizzleThreshold    = 50
+	checkAheadHours     = 1
+	userAgent           = "rain-alert/1.0"
+	ntfyBaseURL         = "https://ntfy.sh"
+	dateLayout          = "2006-01-02 15:04"
 )
 
 func (api *WeatherAPI) GetNextHourForecast() error {
@@ -74,14 +75,7 @@ func (api *WeatherAPI) GetNextHourForecast() error {
 		return err
 	}
 
-	th, err := api.getThresholds(api.Db)
-	if err != nil {
-		return err
-	}
-
-	api.Thresholds = th
-
-	if hour.ChanceOfRain < api.Thresholds["drizzleThreshold"] {
+	if hour.ChanceOfRain < drizzleThreshold {
 		log.Printf("Chance of rain (%d%%) too low, not notifying.\n", hour.ChanceOfRain)
 		return nil
 	}
@@ -183,7 +177,7 @@ func (api *WeatherAPI) shouldNotify(db *sql.DB) (bool, error) {
 		return true, nil
 	}
 
-	if state > api.Thresholds["rainBeforeThreshold"] {
+	if state > rainBeforeThreshold {
 		return false, nil
 	}
 

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/imedgar/rain-alert/internal/weather"
@@ -35,15 +37,24 @@ func run() error {
 		return err
 	}
 
+	db, err := sql.Open("libsql", fmt.Sprintf("%s?authToken=%s", c.DatabaseUrl, c.DatabaseToken))
+	if err != nil {
+		return fmt.Errorf("opening database: %w", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("pinging database: %w", err)
+	}
+
 	api := weather.NewWeatherAPI(weather.Config{
 		WeatherApiKey:         c.WeatherApiKey,
 		PushNotificationTopic: c.PushNotificationTopic,
-		DatabaseUrl:           c.DatabaseUrl,
-		DatabaseToken:         c.DatabaseToken,
 		Location:              c.Location,
 		Timezone:              c.Timezone,
-	})
-	err := api.GetNextHourForecast()
+	}, db)
+
+	err = api.GetNextHourForecast()
 	if err != nil {
 		return err
 	}
