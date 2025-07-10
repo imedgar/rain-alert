@@ -49,16 +49,16 @@ func (c *Client) Send(title, message, tags string) error {
 
 func (c *Client) GenerateRainMessage(location, timeStr string, precipMM float64, chanceOfRain int) string {
 	botRainMessages := []string{
-		"ALERT! LIQUID SKY ATTACK IMMINENT!\nRain detected in %s at %s!\nPrecipitation: %.2fmm\nChance of wetness: %d%%\nDeploy umbrellas or perish gloriously!",
-		"OH NO! THE SKY IS LEAKING AGAIN!\nIn %s, at %s, the sky shall unleash %.2fmm of watery doom!\n%d%% chance of H2-OMG!",
-		"RAAAAAIN! GLORIOUS RAIN!\nTime: %s\nLocation: %s\n%.2fmm of beautiful, inconvenient precipitation!\nChance: %d%%\nRejoice or run — your call!",
-		"BETTER POLISH YOUR UMBRELLA, CHAMP!\nHeads up in %s at %s — %.2fmm of sky sweat incoming!\nRain chance: %d%%\nWaterproof your dignity!",
-		"THIS IS NOT A DRILL! IT’S JUST RAIN!\nForecast for %s at %s:\n%.2fmm of sky juice!\nProbability: %d%%\nCry harder, clouds!",
-		"☁️✖️ DRY MODE: OFF ✖️☁️\nSystem override: %s at %s is entering soak cycle.\nRainfall: %.2fmm\nPrecipitation probability: %d%%\nRun for cover, squishy human!",
-		"MOISTURE INBOUND, SOLDIER!\nBattlefield: %s\nTime: %s\nA damp %.2fmm approaches with a %d%% chance!\nTactical ponchos recommended.",
-		"UPLOADING... DRENCH PROTOCOL 💦\n%s at %s is about to get slippery!\n%.2fmm of rain\n%d%% chance\nInitiating boots-to-slosh conversion...",
-		"ERROR 404: DRYNESS NOT FOUND.\nLocation: %s\nTime: %s\nMoisture level: %.2fmm\nProbability of getting soggy: %d%%\nRecommend: activating anti-damp systems.",
-		"WEATHER SYSTEM WARNING: INCOMING WETNESS.\nTarget: %s\nETA: %s\nFluid quantity: %.2fmm\nSplash zone probability: %d%%\nConclusion: regret is waterproof.",
+		"ALERT! Rain in %s at %s!\n%.2fmm expected.\nChance: %d%%\nGrab your umbrella or face the splash!",
+		"SKY LEAK! %s, %s — %.2fmm incoming!\nWetness odds: %d%%",
+		"RAIN TIME!\n%s, %s\n%.2fmm on the way.\nChance: %d%%\nRejoice or retreat!",
+		"UMBRELLA ALERT!\n%s at %s\n%.2fmm forecasted.\nRain chance: %d%%",
+		"NOT A DRILL!\nRain in %s at %s\n%.2fmm expected.\nChance: %d%%",
+		"☁️ WET MODE ACTIVATED ☁️\n%s, %s\nRain: %.2fmm\nChance: %d%%",
+		"MOISTURE INCOMING!\n%s, %s\n%.2fmm with %d%% chance\nGet poncho-ready!",
+		"DRENCH MODE: ON 💦\n%s, %s\n%.2fmm rain\n%d%% chance",
+		"DRYNESS ERROR!\n%s, %s\n%.2fmm of sogginess\nOdds: %d%%",
+		"⚠️ RAIN WARNING ⚠️\n%s, %s\n%.2fmm\nChance: %d%%\nStay dry or embrace the drip.",
 	}
 	rand.Seed(uint64(time.Now().UnixNano()))
 	template := botRainMessages[rand.Intn(len(botRainMessages))]
