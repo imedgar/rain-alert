@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/imedgar/rain-alert/internal/weather"
 	"github.com/sethvargo/go-envconfig"
@@ -52,7 +53,7 @@ func run() error {
 		PushNotificationTopic: c.PushNotificationTopic,
 		Location:              c.Location,
 		Timezone:              c.Timezone,
-	}, db)
+	}, db, http.DefaultClient)
 
 	err = api.GetNextHourForecast()
 	if err != nil {

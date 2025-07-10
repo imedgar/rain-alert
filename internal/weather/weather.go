@@ -38,28 +38,39 @@ type Hour struct {
 	ChanceOfRain int     `json:"chance_of_rain"`
 }
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type Config struct {
 	WeatherApiKey         string
 	PushNotificationTopic string
 	Location              string
 	Timezone              string
+	WeatherAPIURL         string
+	NtfyURL               string
 }
 
 type WeatherAPI struct {
 	Db         *sql.DB
 	Config     Config
 	Thresholds map[string]int
+	HttpClient HTTPClient
 }
 
-func NewWeatherAPI(config Config, db *sql.DB) *WeatherAPI {
-	return &WeatherAPI{Db: db, Config: config}
+func NewWeatherAPI(config Config, db *sql.DB, client HTTPClient) *WeatherAPI {
+	if config.WeatherAPIURL == "" {
+		config.WeatherAPIURL = "http://api.weatherapi.com/v1/forecast.json"
+	}
+	if config.NtfyURL == "" {
+		config.NtfyURL = "https://ntfy.sh"
+	}
+	return &WeatherAPI{Db: db, Config: config, HttpClient: client}
 }
 
 const (
-	apiURL          = "http://api.weatherapi.com/v1/forecast.json"
 	checkAheadHours = 1
 	userAgent       = "rain-alert/1.0"
-	ntfyBaseURL     = "https://ntfy.sh"
 	dateLayout      = "2006-01-02 15:04"
 )
 
@@ -114,14 +125,14 @@ func (api *WeatherAPI) fetchWeather() (*WeatherResponse, error) {
 	params.Set("aqi", "no")
 	params.Set("alerts", "no")
 
-	fullURL := fmt.Sprintf("%s?%s", apiURL, params.Encode())
+	fullURL := fmt.Sprintf("%s?%s", api.Config.WeatherAPIURL, params.Encode())
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("User-Agent", userAgent)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := api.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("making request: %w", err)
 	}
@@ -212,7 +223,7 @@ func (api *WeatherAPI) sendNotification(hour Hour, location string) error {
 	template := botRainMessages[rand.Intn(len(botRainMessages))]
 	msg := fmt.Sprintf(template, location, hour.Time, hour.PrecipMM, hour.ChanceOfRain)
 
-	url := fmt.Sprintf("%s/%s", ntfyBaseURL, api.Config.PushNotificationTopic)
+	url := fmt.Sprintf("%s/%s", api.Config.NtfyURL, api.Config.PushNotificationTopic)
 	req, err := http.NewRequest("POST", url, strings.NewReader(msg))
 	if err != nil {
 		return fmt.Errorf("creating notification request: %w", err)
@@ -220,7 +231,7 @@ func (api *WeatherAPI) sendNotification(hour Hour, location string) error {
 	req.Header.Set("Title", "Rain alert")
 	req.Header.Set("Tags", "umbrella,robot")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := api.HttpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("sending notification: %w", err)
 	}
