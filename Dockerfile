@@ -21,10 +21,10 @@ FROM base AS tester
 COPY . .
 
 # Run tests and ensure failure if any test fails
-# RUN go test ./... || exit 1
+RUN go test ./... || exit 1
 
 # Create a dummy file if tests pass
-# RUN echo "Tests passed" > /app/test-passed
+RUN echo "Tests passed" > /app/test-passed
 
 # ======== Build Stage ========
 FROM base AS builder
@@ -33,7 +33,7 @@ FROM base AS builder
 COPY . .
 
 # Copy the dummy file from the test stage to enforce dependency
-# COPY --from=tester /app/test-passed .
+COPY --from=tester /app/test-passed .
 
 # Build the Go app
 RUN go build -o app ./cmd/main.go

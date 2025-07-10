@@ -5,23 +5,16 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 
+	"github.com/imedgar/rain-alert/internal/alert"
+	"github.com/imedgar/rain-alert/internal/config"
+	"github.com/imedgar/rain-alert/internal/platform/database"
+	"github.com/imedgar/rain-alert/internal/platform/ntfy"
 	"github.com/imedgar/rain-alert/internal/weather"
-	"github.com/sethvargo/go-envconfig"
+
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
-
-type WeatherConfig struct {
-	Config *Config
-}
-
-type Config struct {
-	WeatherApiKey         string `env:"WEATHER_API_KEY"`
-	PushNotificationTopic string `env:"PUSH_NOTIFICATION_TOPIC"`
-	DatabaseUrl           string `env:"DB_URL"`
-	DatabaseToken         string `env:"DB_TOKEN"`
-	Location              string `env:"LOCATION"`
-	Timezone              string `env:"TIMEZONE"`
-}
 
 func main() {
 	if err := run(); err != nil {
@@ -32,8 +25,8 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	var c Config
-	if err := envconfig.Process(ctx, &c); err != nil {
+	c, err := config.NewConfig(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -47,15 +40,13 @@ func run() error {
 		return fmt.Errorf("pinging database: %w", err)
 	}
 
-	api := weather.NewWeatherAPI(weather.Config{
-		WeatherApiKey:         c.WeatherApiKey,
-		PushNotificationTopic: c.PushNotificationTopic,
-		Location:              c.Location,
-		Timezone:              c.Timezone,
-	}, db)
+	dbPlatform := database.New(db)
+	weatherAPI := weather.NewAPI(http.DefaultClient, "http://api.weatherapi.com/v1/forecast.json", c.WeatherApiKey)
+	ntfyClient := ntfy.New(http.DefaultClient, "https://ntfy.sh", c.PushNotificationTopic)
 
-	err = api.GetNextHourForecast()
-	if err != nil {
+	alerter := alert.NewAlerter(weatherAPI, dbPlatform, ntfyClient)
+
+	if err := alerter.CheckAndAlert(c.Location, c.Timezone); err != nil {
 		return err
 	}
 
